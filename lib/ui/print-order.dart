@@ -19,7 +19,7 @@ class _PrintOrderState extends State<PrintOrder> {
   final partyName,invoiceDate,invoiceNo,payment;
   final List<MaterialModel> materialDocs;
   final List<FabricModel> fabricDocs;
-  int _totalMat=0,_totalFab=0;
+  double _totalMat=0,_totalFab=0;
   _PrintOrderState(this.partyName,this.invoiceDate,this.invoiceNo,this.payment,this.materialDocs,this.fabricDocs);
 
   @override
@@ -41,6 +41,12 @@ class _PrintOrderState extends State<PrintOrder> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Print"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios),
+          onPressed: (){
+            Navigator.of(context).pop(context);
+          },
+        ),
       ),
       body: PdfPreview(
         build: (format)=>_generatedPdf(),
@@ -102,7 +108,7 @@ class _PrintOrderState extends State<PrintOrder> {
                              pw.Container(
                                  alignment: pw.Alignment.centerRight,
                                  width: _colWidth*2/10,
-                                 child: pw.Text(materialDocs[index].totalQty.toString(),style: pw.TextStyle(fontSize: 9))
+                                 child: pw.Text(materialDocs[index].totalQty.toStringAsFixed(3),style: pw.TextStyle(fontSize: 9))
                              ),
                            ]
                        ),
@@ -116,7 +122,7 @@ class _PrintOrderState extends State<PrintOrder> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
-                  pw.Text("Total : "+_totalMat.toString(),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text("Total : "+_totalMat.toStringAsFixed(3),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ]
               ),
               pw.SizedBox(height: 10),
@@ -141,7 +147,7 @@ class _PrintOrderState extends State<PrintOrder> {
                                   pw.Container(
                                       alignment: pw.Alignment.centerRight,
                                       width: _colWidth*2/10,
-                                      child: pw.Text(fabricDocs[index].totalQty.toString(),style: pw.TextStyle(fontSize: 9))
+                                      child: pw.Text(fabricDocs[index].totalQty.toStringAsFixed(3),style: pw.TextStyle(fontSize: 9))
                                   ),
                                 ]
                             ),
@@ -155,7 +161,7 @@ class _PrintOrderState extends State<PrintOrder> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
-                  pw.Text("Total : "+_totalFab.toString(),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Text("Total : "+_totalFab.toStringAsFixed(3),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ]
               ),
               pw.SizedBox(height: 10),

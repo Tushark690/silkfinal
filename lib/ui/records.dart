@@ -11,15 +11,30 @@ class Records extends StatefulWidget {
 }
 
 class _DataTableExample extends State<Records> {
-
+  var _partyValue = "0";
   List<FabricModel> _fabricList=[];
   List<MaterialModel> _materialList=[];
   TextEditingController t1 = new TextEditingController();
   TextEditingController t2 = new TextEditingController();
   String _firstDate="",_secondDate="",_date="";
-  Query _records=FirebaseFirestore.instance
-      .collection("invoice")
-      .orderBy("invoiceNo", descending: true);
+  CollectionReference _records;
+  var _data;
+  List<DataRow> serviceWidget = [];
+
+  _getRecords()async{
+    try{
+      _records=FirebaseFirestore.instance
+          .collection("invoice");
+    }catch(e){
+      print(e);
+    }
+  }
+
+  @override
+  void initState() {
+    _data=_getRecords();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,113 +43,54 @@ class _DataTableExample extends State<Records> {
           appBar: AppBar(
             title: Text('Flutter DataTable Example'),
           ),
-          body: ListView(children: <Widget>[
-            _customDate(),
-            Center(
-                child: Text(
-              'Records',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            )),
-            StreamBuilder<QuerySnapshot>(
-              stream: _records.snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final services = snapshot.data.docs;
-                  List<DataRow> serviceWidget = [];
-                  for (var st in services) {
-                    final invoiceNo = st.data()['invoiceNo'];
-                    final date = st.data()['date'].toString();
-                    final partyName = st.data()['partyName'];
-                    final payment = st.data()['payment'];
-                    // final material = st.data()['material'];
-                    // final unit = st.data()['unit'];
-                    // final materialQuantity = st.data()['materialQuantity'];
-                    // final fabric = st.data()['fabric'];
-                    // final shade = st.data()['shade'];
-                    // final fabricQuantity = st.data()['fabricQuantity'];
-                    // final address=st.data()['address'];
-                    final sno = st.id;
-                    final datas = buildRow(
-                        invoiceNo,
-                        date,
-                        partyName,
-                        payment,
-                        st.id
-                        // material,
-                        // unit,
-                        // materialQuantity,
-                        // fabric,
-                        // shade,
-                        // fabricQuantity);
-                    );
-                    serviceWidget.add(datas);
-                  }
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: [
-                        DataColumn(
-                            label: Text('Invoice',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold))),
-                        DataColumn(
-                            label: Text('Date',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold))),
-                        DataColumn(
-                            label: Text('Party',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold))),
-                        DataColumn(
-                            label: Text('Amount',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Material',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Unit',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Quantity',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Fabric',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Shade',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                        // DataColumn(
-                        //     label: Text('Quantity',
-                        //         style: TextStyle(
-                        //             fontSize: 18,
-                        //             fontWeight: FontWeight.bold))),
-                      ],
-                      rows: serviceWidget,
-                    ),
-                  );
-                } else {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-              },
-            ),
-          ])),
+          body: FutureBuilder(
+            future: _data,
+            builder: (context, snap) {
+             if(snap.connectionState==ConnectionState.done){
+               return ListView(children: <Widget>[
+                 _customDate(),
+                 Center(
+                     child: Text(
+                       'Records',
+                       style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                     )
+                 ),
+                 SingleChildScrollView(
+                   scrollDirection: Axis.horizontal,
+                   child: DataTable(
+                     columns: [
+                       DataColumn(
+                           label: Text('Invoice',
+                               style: TextStyle(
+                                   fontSize: 18,
+                                   fontWeight: FontWeight.bold))),
+                       DataColumn(
+                           label: Text('Date',
+                               style: TextStyle(
+                                   fontSize: 18,
+                                   fontWeight: FontWeight.bold))),
+                       DataColumn(
+                           label: Text('Party',
+                               style: TextStyle(
+                                   fontSize: 18,
+                                   fontWeight: FontWeight.bold))),
+                       DataColumn(
+                           label: Text('Amount',
+                               style: TextStyle(
+                                   fontSize: 18,
+                                   fontWeight: FontWeight.bold))),
+                     ],
+                     rows: serviceWidget,
+                   ),
+                 )
+               ]);
+             }else{
+               return Center(
+                 child: CircularProgressIndicator(),
+               );
+             }
+            }
+          )),
     );
   }
 
@@ -144,12 +100,6 @@ class _DataTableExample extends State<Records> {
     party,
     payment,
     id
-    // material,
-    // unit,
-    // materialQuantity,
-    // fabric,
-    // shade,
-    // fabricQuantity,
   ) {
     return DataRow(
       onSelectChanged: (bool){
@@ -160,18 +110,10 @@ class _DataTableExample extends State<Records> {
       DataCell(Text(date == null ? "" : date.toString())),
       DataCell(Text(party == null ? "" : party)),
       DataCell(Text(payment == null ? "" : payment.toString())),
-      // DataCell(Text(material == null ? "" : material)),
-      // DataCell(Text(unit == null ? "" : unit)),
-      // DataCell(
-      //     Text(materialQuantity == null ? "" : materialQuantity.toString())),
-      // DataCell(Text(fabric == null ? "" : fabric)),
-      // DataCell(Text(shade == null ? "" : shade)),
-      // DataCell(Text(fabricQuantity == null ? "" : fabricQuantity.toString())),
     ]);
   }
 
   _bottomModalInvoice(id,invoiceNo,date,party,payment){
-    List fabricDocs=[],materialDocs=[];
     showModalBottomSheet<void>(
       context: context,
       builder: (BuildContext context) {
@@ -191,7 +133,6 @@ class _DataTableExample extends State<Records> {
                         child: CircularProgressIndicator(),
                       );
                     }
-                    fabricDocs=snapshot.data.docs;
                     return Container(
                       child: ListView.builder(
                         itemCount: snapshot.data.docs.length,
@@ -223,8 +164,6 @@ class _DataTableExample extends State<Records> {
                           child: CircularProgressIndicator(),
                         );
                       }
-                      materialDocs=snapshot.data.docs;
-
                       return Container(
                           child: ListView.builder(
                             itemCount: snapshot.data.docs.length,
@@ -262,8 +201,6 @@ class _DataTableExample extends State<Records> {
 
   Widget _customDate(){
     return Container(
-      // width: MediaQuery.of(context).size.width,
-      // height: MediaQuery.of(context).size.height,
       child: Column(
         children: [
           InkWell(
@@ -297,6 +234,54 @@ class _DataTableExample extends State<Records> {
             ),
           ),
           SizedBox(height: 10,),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            height: 50,
+            width: MediaQuery.of(context).size.width,
+            child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection("partyMaster")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    List<DropdownMenuItem> items = [];
+                    final datas = snapshot.data.docs;
+                    items.add(DropdownMenuItem(
+                      child: Text("All party",),
+                      value: "0",
+                    ));
+                    for (var st in datas) {
+                      items.add(DropdownMenuItem(
+                        child: Text(
+                          st.data()['name'],),
+                        value: st.data()['name'],
+                      ));
+                    }
+                    return Container(
+                      padding: EdgeInsets.only(left: 10),
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: Colors.blue, width: 2),
+                          borderRadius: BorderRadius.circular(5)),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField(
+                          items: items,
+                          value: _partyValue,
+                          decoration: InputDecoration(
+                              border: InputBorder.none),
+                          onChanged: (value) {
+                            setState(() {
+                              _partyValue = value;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  } else {
+                    return Text("Loading...");
+                  }
+                }),
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -305,13 +290,28 @@ class _DataTableExample extends State<Records> {
                   child: Text("Search",style: TextStyle(color: Colors.white),),
                   color: Colors.blue,
                   onPressed: (){
-                      setState(() {
-                        _records=FirebaseFirestore.instance
-                            .collection("invoice")
-                            .where("reportDate",isGreaterThanOrEqualTo: _firstDate)
-                            .where("reportDate",isLessThanOrEqualTo: _secondDate)
-                            .orderBy("reportDate", descending: true);
-                      });
+                    _getData();
+                  // try{
+                  //   String p=_partyValue.trim();
+                  //   String f=_firstDate;
+                  //   String s=_secondDate;
+                  //   print(p);
+                  //   if(p=="0"){
+                  //     setState(() {
+                  //       _records=q
+                  //           .where("reportDate",isGreaterThanOrEqualTo: f,isLessThanOrEqualTo: s)
+                  //           .orderBy("reportDate", descending: true);
+                  //     });
+                  //   }else{
+                  //     setState(() {
+                  //       _records=q.where("reportDate",isGreaterThanOrEqualTo: f,isLessThanOrEqualTo: s,)
+                  //           .where("partyName",isEqualTo: p).orderBy("reportDate", descending: true);
+                  //     });
+                  //
+                  //   }
+                  // }catch(e){
+                  //   print(e);
+                  // }
                   },
                 ))
               ],
@@ -354,5 +354,53 @@ class _DataTableExample extends State<Records> {
         t2.text = _secondDate;
       });
     }
+  }
+
+  _getData(){
+    serviceWidget=[];
+    if(_partyValue=="0"){
+      _records.where("reportDate",isGreaterThanOrEqualTo: _firstDate,isLessThanOrEqualTo: _secondDate)
+         .orderBy("reportDate", descending: true).get().then((QuerySnapshot snapshot) {
+        snapshot.docs.forEach((element) {
+          final invoiceNo = element.get('invoiceNo');
+          final date =element.get('date').toString();
+          final partyName = element.get('partyName');
+          final payment = element.get('payment');
+          final sno = element.id;
+          final datas = buildRow(
+              invoiceNo,
+              date,
+              partyName,
+              payment,
+              sno
+          );
+          setState(() {
+            serviceWidget.add(datas);
+          });
+        });
+      } );
+    }else{
+      _records.where("reportDate",isGreaterThanOrEqualTo: _firstDate,isLessThanOrEqualTo: _secondDate)
+          .where("partyName",isEqualTo: _partyValue).orderBy("reportDate", descending: true).get().then((QuerySnapshot snapshot) {
+        snapshot.docs.forEach((element) {
+          final invoiceNo = element.get('invoiceNo');
+          final date =element.get('date').toString();
+          final partyName = element.get('partyName');
+          final payment = element.get('payment');
+          final sno = element.id;
+          final datas = buildRow(
+              invoiceNo,
+              date,
+              partyName,
+              payment,
+              sno
+          );
+          setState(() {
+            serviceWidget.add(datas);
+          });
+        });
+      } );
+    }
+
   }
 }

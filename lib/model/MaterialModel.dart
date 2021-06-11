@@ -1,7 +1,7 @@
 class MaterialModel{
   String materialName;
   String allQty;
-  int totalQty;
+  double totalQty;
   String unit;
 
   MaterialModel({this.materialName, this.allQty, this.totalQty,this.unit});

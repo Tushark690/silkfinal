@@ -1,7 +1,7 @@
 class FabricModel{
   String fabricName;
   String allQty;
-  int totalQty;
+  double totalQty;
   String shade;
 
   FabricModel({this.fabricName, this.allQty, this.totalQty,this.shade});

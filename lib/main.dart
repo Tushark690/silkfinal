@@ -76,13 +76,13 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _fabricQuantity;
 
   double textSize = 0;
-  int totalMaterial = 0;
+  double totalMaterial = 0;
   List<MaterialModel> _materialList = List.empty(growable: true);
-  int _overallMaterial=0;
+  double _overallMaterial=0;
 
-  int _totalFabric = 0;
+  double _totalFabric = 0;
   List<FabricModel> _fabricList = List.empty(growable: true);
-  int _overallFabric=0;
+  double _overallFabric=0;
 
   // Future<void> _createPDF() async {
   //   PdfDocument document = PdfDocument();
@@ -168,6 +168,37 @@ class _MyHomePageState extends State<MyHomePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection("invoice")
+                            .limit(1)
+                            .orderBy("invoiceNo", descending: true)
+                            .snapshots(),
+                        builder: (context,snap){
+                          if(!snap.hasData){
+                            return Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if(snap.data.docs.length>0){
+                            return Container(
+                              child: Text("Invoice : "+(snap.data.docs[0].get("invoiceNo")+1).toString(),style: TextStyle(fontWeight: FontWeight.w800),),
+                            );
+                          }else{
+                            return Container(
+                              child: Text("Invoice : 1"),
+                            );
+                          }
+
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 Container(
                   padding: EdgeInsets.only(left: 10, right: 10, top: 10),
                   child: Row(
@@ -477,7 +508,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           for(var a in  value.split("+")){
                             setState(() {
                               if(a.trim().length>0){
-                                _totalFabric = _totalFabric+int.parse(a);
+                                _totalFabric = _totalFabric+double.parse(a);
                               }
                             });
                           }
@@ -520,7 +551,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     SizedBox(
                       width: MediaQuery.of(context).size.width * 0.08,
                     ),
-                    Expanded(flex: 2, child: Text("Total: $_totalFabric"))
+                    Expanded(flex: 2, child: Text("Total: "+_totalFabric.toStringAsFixed(3)))
                   ],
                 ),
                 _totalFabricTable(),
@@ -586,7 +617,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 for(var a in  value.split("+")){
                   setState(() {
                     if(a.trim().length>0){
-                      totalMaterial = totalMaterial+int.parse(a);
+                      totalMaterial = totalMaterial+double.parse(a);
                     }
                   });
                 }
@@ -628,7 +659,7 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(
           width: MediaQuery.of(context).size.width * 0.08,
         ),
-        Expanded(flex: 2, child: Text("Total: $totalMaterial")),
+        Expanded(flex: 2, child: Text("Total: "+totalMaterial.toStringAsFixed(3))),
       ],
     );
   }
@@ -652,12 +683,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },),
                 title: Text(_materialList[i].materialName+" "+_materialList[i].allQty),
-                trailing: Text(_materialList[i].totalQty.toString() + " "+_materialList[i].unit,style: TextStyle(fontWeight: FontWeight.w800),),
+                trailing: Text(_materialList[i].totalQty.toStringAsFixed(3) + " "+_materialList[i].unit,style: TextStyle(fontWeight: FontWeight.w800),),
               );
             },
           ),
           ListTile(
-            trailing: Text("Total : "+_overallMaterial.toString()+" KG",style: TextStyle(fontWeight: FontWeight.w800),),
+            trailing: Text("Total : "+_overallMaterial.toStringAsFixed(3)+" KG",style: TextStyle(fontWeight: FontWeight.w800),),
           )
         ],
       ),
@@ -683,12 +714,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     });
                   },),
                 title: Text(_fabricList[i].fabricName+" "+_fabricList[i].allQty),
-                trailing: Text(_fabricList[i].totalQty.toString() + " "+_fabricList[i].shade,style: TextStyle(fontWeight: FontWeight.w800),),
+                trailing: Text(_fabricList[i].totalQty.toStringAsFixed(3) + " "+_fabricList[i].shade,style: TextStyle(fontWeight: FontWeight.w800),),
               );
             },
           ),
           ListTile(
-            trailing: Text("Total : "+_overallFabric.toString(),style: TextStyle(fontWeight: FontWeight.w800),),
+            trailing: Text("Total : "+_overallFabric.toStringAsFixed(3),style: TextStyle(fontWeight: FontWeight.w800),),
           )
         ],
       ),
@@ -751,12 +782,18 @@ class _MyHomePageState extends State<MyHomePage> {
               Fluttertoast.showToast(msg: "Invoice Saved");
               _submitPressed = false;
               if(isPrint){
-                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),));
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                 setState(() {
+                   _fabricList=[];
+                   _materialList=[];
+                   _amount.text="";
+                 });
+                });
               }else{
                 Navigator.of(context).pop();
               }
-              _fabricList=[];
-              _materialList=[];
+
             });
           } else {
             snapshot.docs.forEach((element) {
@@ -800,12 +837,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 Fluttertoast.showToast(msg: "Invoice Saved");
                 _submitPressed = false;
                 if(isPrint){
-                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),));
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                    setState(() {
+                      _fabricList=[];
+                      _materialList=[];
+                      _amount.text="";
+                    });
+                  });
                 }else{
                   Navigator.of(context).pop();
                 }
-                _fabricList=[];
-                _materialList=[];
+                // _fabricList=[];
+                // _materialList=[];
               });
             });
           }
