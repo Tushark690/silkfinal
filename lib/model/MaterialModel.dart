@@ -3,6 +3,7 @@ class MaterialModel{
   String allQty;
   double totalQty;
   String unit;
+  double rate;
 
   MaterialModel({this.materialName, this.allQty, this.totalQty,this.unit});
 
@@ -11,6 +12,7 @@ class MaterialModel{
     allQty = json['allQty'];
     totalQty = json['totalQty'];
     unit = json['unit'];
+    rate = json['rate'];
   }
 
   Map<String, dynamic> toJson() {
@@ -19,6 +21,7 @@ class MaterialModel{
     data['allQty'] = this.allQty;
     data['totalQty'] = this.totalQty;
     data['unit'] = this.unit;
+    data['rate'] = this.rate;
     return data;
   }
 }

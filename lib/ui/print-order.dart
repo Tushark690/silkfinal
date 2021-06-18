@@ -20,17 +20,19 @@ class _PrintOrderState extends State<PrintOrder> {
   final List<MaterialModel> materialDocs;
   final List<FabricModel> fabricDocs;
   double _totalMat=0,_totalFab=0;
+  double _netMat=0,_netFab=0;
   _PrintOrderState(this.partyName,this.invoiceDate,this.invoiceNo,this.payment,this.materialDocs,this.fabricDocs);
 
   @override
   void initState() {
-    print(invoiceDate.toString().split("\n")[1]);
     materialDocs.forEach((element) {
       _totalMat=_totalMat+element.totalQty;
+      _netMat=_netMat+(element.rate*element.totalQty);
     });
 
     fabricDocs.forEach((element) {
       _totalFab=_totalFab+element.totalQty;
+      _netFab=_netFab+(element.rate*element.totalQty);
     });
     super.initState();
   }
@@ -50,45 +52,83 @@ class _PrintOrderState extends State<PrintOrder> {
       ),
       body: PdfPreview(
         build: (format)=>_generatedPdf(),
-        pdfFileName: "Invoice 1",
+        pdfFileName: "Invoice "+invoiceNo,
       ),
     );
   }
 
   Future<Uint8List> _generatedPdf()async{
     final pdf = pw.Document();
-    double _colWidth=PdfPageFormat.a5.landscape.width;
+    double _colWidth=PdfPageFormat.a4.portrait.width;
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a5.landscape,
-        margin: pw.EdgeInsets.all(10),
+        pageFormat: PdfPageFormat.a4.portrait ,
+        margin: pw.EdgeInsets.only(left: 10,right: 10,bottom: 5),
         build: (con){
           return pw.Column(
-            // crossAxisAlignment: pw.CrossAxisAlignment.start,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.start,
             children: [
               pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text("YGP Silk",style: pw.TextStyle(fontSize: 30,fontWeight: pw.FontWeight.bold)),
-                  pw.Spacer(),
+                  // pw.Spacer(),
+                  pw.Text("Purchase Memo 786/92"),
+                  // pw.Spacer(),
                   pw.Text(partyName,style: pw.TextStyle(fontSize: 20,fontWeight: pw.FontWeight.bold))
                 ]
               ),
               pw.Row(
                 children: [
-                  pw.Text("Date :"+invoiceDate.toString().split("\n")[1]+" "+invoiceDate.toString().split("\n")[0]),
+                  pw.Text("Date : "+invoiceDate.toString()),
                   pw.Spacer(),
-                  pw.Text("Invoice No :"+invoiceNo.toString())
+                  pw.Text("Invoice No : "+invoiceNo.toString())
                 ]
               ),
               pw.Divider(),
               pw.Row(
                 children: [
-                  pw.Text("Amount : "+payment,style: pw.TextStyle(fontWeight: pw.FontWeight.bold),)
+                  pw.Text(payment==null?"Amount : 0":payment=="null"?"Amount : 0":"Amount : "+payment,style: pw.TextStyle(fontWeight: pw.FontWeight.bold),)
                 ]
               ),
               pw.SizedBox(height: 10),
               pw.Text("Materials",style: pw.TextStyle(fontWeight: pw.FontWeight.bold,decoration: pw.TextDecoration.underline)),
               pw.SizedBox(height: 10),
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex("D0D0D0")
+                ),
+                padding: pw.EdgeInsets.symmetric(vertical: 5,horizontal: 5),
+                child: pw.Row(
+                    children: [
+                      pw.Container(
+                          width: _colWidth*1.5/10,
+                          child: pw.Text("Name",style: pw.TextStyle(fontSize: 9,fontWeight: pw.FontWeight.bold))
+                      ),
+                      pw.Container(
+                          width: _colWidth*5.5/10,
+                          child:  pw.Text("All Qty",style: pw.TextStyle(fontSize: 9,fontWeight: pw.FontWeight.bold))
+                      ),
+                      pw.Container(
+                          alignment: pw.Alignment.centerRight,
+                          width: _colWidth*0.5/10,
+                          child: pw.Text("Rate",style: pw.TextStyle(fontSize: 9,fontWeight: pw.FontWeight.bold))
+                      ),
+                      pw.Container(
+                          alignment: pw.Alignment.centerRight,
+                          width: _colWidth*1/10,
+                          child: pw.Text("Total Amount",style: pw.TextStyle(fontSize: 9,fontWeight: pw.FontWeight.bold))
+                      ),
+                      pw.Container(
+                          alignment: pw.Alignment.centerRight,
+                          width: _colWidth*1/10,
+                          child: pw.Text("Total Qty",style: pw.TextStyle(fontSize: 9,fontWeight: pw.FontWeight.bold))
+                      ),
+                    ]
+                ),
+              ),
               pw.ListView.builder(
                 itemCount: materialDocs.length,
                 itemBuilder: (context, index) {
@@ -98,16 +138,26 @@ class _PrintOrderState extends State<PrintOrder> {
                        pw.Row(
                            children: [
                              pw.Container(
-                                 width: _colWidth*2/10,
+                                 width: _colWidth*1.5/10,
                                  child: pw.Text(materialDocs[index].materialName.toString(),style: pw.TextStyle(fontSize: 9))
                              ),
                              pw.Container(
-                                 width: _colWidth/2,
+                                 width: _colWidth*5.5/10,
                                  child:  pw.Text(materialDocs[index].allQty.toString(),style: pw.TextStyle(fontSize: 8))
                              ),
                              pw.Container(
                                  alignment: pw.Alignment.centerRight,
-                                 width: _colWidth*2/10,
+                                 width: _colWidth*0.5/10,
+                                 child: pw.Text((materialDocs[index].rate).toString(),style: pw.TextStyle(fontSize: 9))
+                             ),
+                             pw.Container(
+                                 alignment: pw.Alignment.centerRight,
+                                 width: _colWidth*1/10,
+                                 child: pw.Text((materialDocs[index].rate*materialDocs[index].totalQty).toString(),style: pw.TextStyle(fontSize: 9))
+                             ),
+                             pw.Container(
+                                 alignment: pw.Alignment.centerRight,
+                                 width: _colWidth*1/10,
                                  child: pw.Text(materialDocs[index].totalQty.toStringAsFixed(3),style: pw.TextStyle(fontSize: 9))
                              ),
                            ]
@@ -122,12 +172,14 @@ class _PrintOrderState extends State<PrintOrder> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
+                  pw.Text("Net Amount : "+_netMat.toStringAsFixed(2),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(width: 10),
                   pw.Text("Total : "+_totalMat.toStringAsFixed(3),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ]
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 2),
               pw.Text("Fabrics",style: pw.TextStyle(fontWeight: pw.FontWeight.bold,decoration: pw.TextDecoration.underline)),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 2),
               pw.ListView.builder(
                 itemCount: fabricDocs.length,
                 itemBuilder: (context, index) {
@@ -137,16 +189,26 @@ class _PrintOrderState extends State<PrintOrder> {
                             pw.Row(
                                 children: [
                                   pw.Container(
-                                      width: _colWidth*2/10,
+                                      width: _colWidth*1.5/10,
                                       child: pw.Text(fabricDocs[index].fabricName.toString()+" "+fabricDocs[index].shade,style: pw.TextStyle(fontSize: 9))
                                   ),
                                   pw.Container(
-                                      width: _colWidth/2,
-                                      child: pw.Text(fabricDocs[index].allQty.toString(),style: pw.TextStyle(fontSize: 9))
+                                      width: _colWidth*5.5/10,
+                                      child: pw.Text(fabricDocs[index].allQty.toString(),style: pw.TextStyle(fontSize: 8))
                                   ),
                                   pw.Container(
                                       alignment: pw.Alignment.centerRight,
-                                      width: _colWidth*2/10,
+                                      width: _colWidth*0.5/10,
+                                      child: pw.Text((fabricDocs[index].rate).toString(),style: pw.TextStyle(fontSize: 9))
+                                  ),
+                                  pw.Container(
+                                      alignment: pw.Alignment.centerRight,
+                                      width: _colWidth*1/10,
+                                      child: pw.Text((fabricDocs[index].rate*fabricDocs[index].totalQty).toString(),style: pw.TextStyle(fontSize: 9))
+                                  ),
+                                  pw.Container(
+                                      alignment: pw.Alignment.centerRight,
+                                      width: _colWidth*1/10,
                                       child: pw.Text(fabricDocs[index].totalQty.toStringAsFixed(3),style: pw.TextStyle(fontSize: 9))
                                   ),
                                 ]
@@ -161,10 +223,26 @@ class _PrintOrderState extends State<PrintOrder> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
+                  pw.Text("Net Amount : "+_netFab.toStringAsFixed(2),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(width: 10),
                   pw.Text("Total : "+_totalFab.toStringAsFixed(3),style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ]
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 5),
+              pw.Divider(),
+              pw.SizedBox(height: 5),
+              pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text("YGP Silk",style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text("Signature",),
+                      ]
+                  )
+                ]
+              ),
             ]
           );
         }

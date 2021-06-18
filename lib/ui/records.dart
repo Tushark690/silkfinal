@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expansion_card/expansion_card.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:silk/model/FabricModel.dart';
 import 'package:silk/model/MaterialModel.dart';
+import 'package:silk/ui/ledger.dart';
 import 'package:silk/ui/print-order.dart';
 
 class Records extends StatefulWidget {
@@ -14,8 +18,8 @@ class _DataTableExample extends State<Records> {
   var _partyValue = "0";
   List<FabricModel> _fabricList=[];
   List<MaterialModel> _materialList=[];
-  TextEditingController t1 = new TextEditingController();
-  TextEditingController t2 = new TextEditingController();
+  TextEditingController t1;
+  TextEditingController t2;
   String _firstDate="",_secondDate="",_date="";
   CollectionReference _records;
   var _data;
@@ -33,6 +37,11 @@ class _DataTableExample extends State<Records> {
   @override
   void initState() {
     _data=_getRecords();
+    String date=DateTime.now().toString().split(" ")[0];
+    t1 = new TextEditingController(text: date);
+    t2 = new TextEditingController(text: date);
+    _firstDate=date;
+    _secondDate=date;
     super.initState();
   }
 
@@ -133,6 +142,7 @@ class _DataTableExample extends State<Records> {
                         child: CircularProgressIndicator(),
                       );
                     }
+                    _fabricList=[];
                     return Container(
                       child: ListView.builder(
                         itemCount: snapshot.data.docs.length,
@@ -144,11 +154,13 @@ class _DataTableExample extends State<Records> {
                           model.shade=snapshot.data.docs[index].get("shade");
                           model.allQty=snapshot.data.docs[index].get("allQty");
                           model.totalQty=snapshot.data.docs[index].get("totalQty");
+                          model.rate=snapshot.data.docs[index].get("rate");
+                          print(snapshot.data.docs[index].get("fabricName"));
                           _fabricList.add(model);
                           return ListTile(
                             leading: Text(snapshot.data.docs[index].get("fabricName")),
                             title: Text(snapshot.data.docs[index].get("allQty")),
-                            trailing: Text(snapshot.data.docs[index].get("totalQty").toString()+" "+snapshot.data.docs[index].get("shade"),style: TextStyle(fontWeight: FontWeight.w800),),
+                            trailing: Text(snapshot.data.docs[index].get("totalQty").toString()+" "+snapshot.data.docs[index].get("rate").toString(),style: TextStyle(fontWeight: FontWeight.w800),),
                           );
                         },
                       )
@@ -158,28 +170,33 @@ class _DataTableExample extends State<Records> {
                 Text("Material",style: TextStyle(fontWeight: FontWeight.w800),),
                 StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection("materialInvoice").where("invoice",isEqualTo: id).snapshots(),
-                    builder: (context, snapshot) {
-                      if(!snapshot.hasData){
+                    builder: (context, snap) {
+                      if(!snap.hasData){
                         return Center(
                           child: CircularProgressIndicator(),
                         );
                       }
+                      _materialList=[];
                       return Container(
                           child: ListView.builder(
-                            itemCount: snapshot.data.docs.length,
+                            itemCount: snap.data.docs.length,
                             shrinkWrap: true,
                             primary: false,
-                            itemBuilder: (context, index) {
+                            itemBuilder: (context, j) {
                               MaterialModel model = MaterialModel();
-                              model.materialName=snapshot.data.docs[index].get("materialName");
-                              model.unit=snapshot.data.docs[index].get("unit");
-                              model.allQty=snapshot.data.docs[index].get("allQty");
-                              model.totalQty=snapshot.data.docs[index].get("totalQty");
+                              model.materialName=snap.data.docs[j].get("materialName");
+                              model.unit=snap.data.docs[j].get("unit");
+                              model.allQty=snap.data.docs[j].get("allQty");
+                              model.totalQty=snap.data.docs[j].get("totalQty");
+                              model.rate=snap.data.docs[j].get("rate");
+                              print(snap.data.docs.length);
                               _materialList.add(model);
                               return ListTile(
-                                leading: Text(snapshot.data.docs[index].get("materialName")),
-                                title: Text(snapshot.data.docs[index].get("allQty")),
-                                trailing: Text(snapshot.data.docs[index].get("totalQty").toString()+" "+snapshot.data.docs[index].get("unit"),style: TextStyle(fontWeight: FontWeight.w800),),
+                                leading: Text(snap.data.docs[j].get("materialName")),
+                                title: Text(snap.data.docs[j].get("allQty")),
+                                trailing: Text(snap.data.docs[j].get("totalQty").toString()+" "+snap.data.docs[j].get("unit")
+                                  +" "+snap.data.docs[j].get("rate").toString()
+                                  ,style: TextStyle(fontWeight: FontWeight.w800),),
                               );
                             },
                           )
@@ -291,29 +308,17 @@ class _DataTableExample extends State<Records> {
                   color: Colors.blue,
                   onPressed: (){
                     _getData();
-                  // try{
-                  //   String p=_partyValue.trim();
-                  //   String f=_firstDate;
-                  //   String s=_secondDate;
-                  //   print(p);
-                  //   if(p=="0"){
-                  //     setState(() {
-                  //       _records=q
-                  //           .where("reportDate",isGreaterThanOrEqualTo: f,isLessThanOrEqualTo: s)
-                  //           .orderBy("reportDate", descending: true);
-                  //     });
-                  //   }else{
-                  //     setState(() {
-                  //       _records=q.where("reportDate",isGreaterThanOrEqualTo: f,isLessThanOrEqualTo: s,)
-                  //           .where("partyName",isEqualTo: p).orderBy("reportDate", descending: true);
-                  //     });
-                  //
-                  //   }
-                  // }catch(e){
-                  //   print(e);
-                  // }
                   },
-                ))
+                )),
+                SizedBox(width: 10,),
+                Expanded(child: RaisedButton(
+                  child: Text("Ledger",style: TextStyle(color: Colors.white),),
+                  color: Colors.blue,
+                  onPressed: ()async{
+                    var allData=await _getLedger();
+                    print(allData);
+                  },
+                )),
               ],
             ),
           )
@@ -363,7 +368,7 @@ class _DataTableExample extends State<Records> {
          .orderBy("reportDate", descending: true).get().then((QuerySnapshot snapshot) {
         snapshot.docs.forEach((element) {
           final invoiceNo = element.get('invoiceNo');
-          final date =element.get('date').toString();
+          final date =element.get('reportDate').toString();
           final partyName = element.get('partyName');
           final payment = element.get('payment');
           final sno = element.id;
@@ -384,7 +389,7 @@ class _DataTableExample extends State<Records> {
           .where("partyName",isEqualTo: _partyValue).orderBy("reportDate", descending: true).get().then((QuerySnapshot snapshot) {
         snapshot.docs.forEach((element) {
           final invoiceNo = element.get('invoiceNo');
-          final date =element.get('date').toString();
+          final date =element.get('reportDate').toString();
           final partyName = element.get('partyName');
           final payment = element.get('payment');
           final sno = element.id;
@@ -401,6 +406,75 @@ class _DataTableExample extends State<Records> {
         });
       } );
     }
+  }
 
+  Future _getLedger()async{
+    var allData=[];
+    try{
+      if(_firstDate==""){
+       Fluttertoast.showToast(msg: "Please enter first date");
+      }else if(_secondDate==""){
+        Fluttertoast.showToast(msg: "Please enter second date");
+      }else if(_partyValue=="0"){
+        Fluttertoast.showToast(msg: "Please select party");
+      }else{
+        await _records.where("reportDate",isGreaterThanOrEqualTo: _firstDate,isLessThanOrEqualTo: _secondDate)
+        .where("partyName",isEqualTo: _partyValue)
+            .orderBy("reportDate", descending: true).get().then((QuerySnapshot snapshot) {
+          int i=0;
+          snapshot.docs.forEach((element)async {
+            final invoiceNo = element.get('invoiceNo');
+            final date =element.get('reportDate').toString();
+            final partyName = element.get('partyName');
+            final payment = element.get('payment');
+            final sno = element.id;
+            List data=[];
+            await FirebaseFirestore.instance.collection("materialInvoice").
+            where("invoice",isEqualTo: sno).get().
+            then((QuerySnapshot snapshot) {
+              snapshot.docs.forEach((element) {
+                data.add({
+                  "materialName":element.get("materialName"),
+                  "totalQty":element.get("totalQty")
+                });
+              });
+            }).whenComplete(()async {
+              List data2=[];
+              await  FirebaseFirestore.instance.collection("fabricInvoice").
+              where("invoice",isEqualTo: sno).get().
+              then((QuerySnapshot snapshot) {
+                snapshot.docs.forEach((element) {
+                  data2.add({
+                    "fabricName":element.get("fabricName"),
+                    "totalQty":element.get("totalQty")
+                  });
+                });
+              }).whenComplete(() {
+                allData.add({
+                  "invoiceNo":invoiceNo,
+                  "date":date,
+                  "partyName":partyName,
+                  "payment":payment,
+                  "mat":data,
+                  "fab":data2,
+                  "firstDate":_firstDate,
+                  "secondDate":_secondDate
+                });
+              });
+            });
+            if(snapshot.docs.length-1==i){
+              print("END");
+              // print(allData);
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => Ledger(jsonEncode(allData)),));
+            }
+            i++;
+          });
+        });
+      }
+    }catch(e){
+      print(e);
+    }
+
+    return allData;
   }
 }

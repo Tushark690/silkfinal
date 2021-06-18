@@ -3,6 +3,7 @@ class FabricModel{
   String allQty;
   double totalQty;
   String shade;
+  double rate;
 
   FabricModel({this.fabricName, this.allQty, this.totalQty,this.shade});
 
@@ -11,6 +12,7 @@ class FabricModel{
     allQty = json['allQty'];
     totalQty = json['totalQty'];
     shade = json['shade'];
+    rate = json['rate'];
   }
 
   Map<String, dynamic> toJson() {
@@ -19,6 +21,7 @@ class FabricModel{
     data['allQty'] = this.allQty;
     data['totalQty'] = this.totalQty;
     data['shade'] = this.shade;
+    data['rate'] = this.rate;
     return data;
   }
 }

@@ -73,16 +73,23 @@ class _MyHomePageState extends State<MyHomePage> {
   List<DropdownMenuItem> _units = [];
   TextEditingController _amount;
   TextEditingController _materialQuantity;
+  TextEditingController _materialRate;
   TextEditingController _fabricQuantity;
+  TextEditingController _fabricRate;
 
   double textSize = 0;
   double totalMaterial = 0;
   List<MaterialModel> _materialList = List.empty(growable: true);
   double _overallMaterial=0;
+  double _totalMaterialRate=0;
 
   double _totalFabric = 0;
   List<FabricModel> _fabricList = List.empty(growable: true);
   double _overallFabric=0;
+  double _totalFabricRate=0;
+
+  TextEditingController t1;
+  String _firstDate="";
 
   // Future<void> _createPDF() async {
   //   PdfDocument document = PdfDocument();
@@ -103,6 +110,9 @@ class _MyHomePageState extends State<MyHomePage> {
     _amount = TextEditingController();
     _materialQuantity = TextEditingController();
     _fabricQuantity = TextEditingController();
+    _fabricRate = TextEditingController();
+    _materialRate=TextEditingController();
+    t1=new TextEditingController(text: DateTime.now().toString().split(" ")[0]);
     super.initState();
   }
 
@@ -184,16 +194,34 @@ class _MyHomePageState extends State<MyHomePage> {
                               child: CircularProgressIndicator(),
                             );
                           }
-                          if(snap.data.docs.length>0){
-                            return Container(
-                              child: Text("Invoice : "+(snap.data.docs[0].get("invoiceNo")+1).toString(),style: TextStyle(fontWeight: FontWeight.w800),),
-                            );
-                          }else{
-                            return Container(
-                              child: Text("Invoice : 1"),
-                            );
-                          }
-
+                          return Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              snap.data.docs.length>0?Text("Invoice : "+(snap.data.docs[0].get("invoiceNo")+1).toString(),style: TextStyle(fontWeight: FontWeight.w800),)
+                                  :Text("Invoice : 1"),
+                              SizedBox(width: 200,),
+                              Container(
+                                  width: 200,
+                                  height: 50,
+                                  child: InkWell(
+                                    onTap:(){
+                                      _selectFirstDate(context);
+                                    },
+                                    child: TextFormField(
+                                      enabled: false,
+                                      controller: t1,
+                                      decoration: InputDecoration(
+                                        hintText: "Date",
+                                        icon: Icon(
+                                          Icons.calendar_today,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                              )
+                            ],
+                          );
                         },
                       ),
                     ],
@@ -437,53 +465,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       SizedBox(
                         width: 10,
                       ),
-                      StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection("shadeMaster")
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              List<DropdownMenuItem> items = [];
-                              final datas = snapshot.data.docs;
-                              items.add(DropdownMenuItem(
-                                child: Text(
-                                  "Please select shade",
-                                  style: TextStyle(fontSize: textSize),
-                                ),
-                                value: "0",
-                              ));
-                              for (var st in datas) {
-                                items.add(DropdownMenuItem(
-                                  child: Text(
-                                    st.data()['name'],
-                                    style: TextStyle(fontSize: textSize),
-                                  ),
-                                  value: st.data()['name'],
-                                ));
-                              }
-                              return Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.only(left: 10),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.blue, width: 2),
-                                    borderRadius: BorderRadius.circular(5)),
-                                child: DropdownButtonFormField(
-                                  items: items,
-                                  value: _shadesValue,
-                                  decoration:
-                                      InputDecoration(border: InputBorder.none),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _shadesValue = value;
-                                    });
-                                  },
-                                ),
-                              ));
-                            } else {
-                              return Text("Loading...");
-                            }
-                          }),
                       SizedBox(
                         width: 10,
                       ),
@@ -515,6 +496,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         },
                       ),
                     ),
+                    SizedBox(width: 10,),
+                    Expanded(
+                      flex: 1,
+                      child: TextFormField(
+                        controller: _fabricRate,
+                        decoration: InputDecoration(
+                            hintText: "Rate",
+                            hintStyle: TextStyle(fontSize: textSize)),
+
+                      ),
+                    ),
                     SizedBox(width: 30,),
                     Expanded(
                       flex: 0,
@@ -524,8 +516,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             Fluttertoast.showToast(msg: "Please select fabric");
                           }else if(_fabricQuantity.text.trim().length<1){
                             Fluttertoast.showToast(msg: "Please enter fabric quantity");
-                          }else if(_shadesValue=="0"){
-                            Fluttertoast.showToast(msg: "Please select shade");
                           }else{
                             setState(() {
                               FabricModel fabricModel = FabricModel();
@@ -533,11 +523,14 @@ class _MyHomePageState extends State<MyHomePage> {
                               fabricModel.shade=_shadesValue;
                               fabricModel.allQty=_fabricQuantity.text;
                               fabricModel.totalQty=_totalFabric;
+                              fabricModel.rate=_fabricRate.text.isEmpty?0:double.parse(_fabricRate.text);
                               _fabricList.add(fabricModel);
                               _fabricQuantity.clear();
                               _overallFabric=0;
+                              _fabricRate.clear();
                               for(var a in _fabricList){
                                 _overallFabric=_overallFabric+a.totalQty;
+                                _totalFabricRate=_totalFabricRate+a.rate;
                               }
                             });
                           }
@@ -625,6 +618,17 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
         ),
+        SizedBox(width: 10,),
+        Expanded(
+          flex: 1,
+          child: TextFormField(
+            keyboardType: TextInputType.number,
+            controller: _materialRate,
+            decoration: InputDecoration(
+                hintText: "Rate",
+                hintStyle: TextStyle(fontSize: textSize)),
+          ),
+        ),
         SizedBox(width: 30,),
         Expanded(
           flex: 0,
@@ -641,11 +645,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   materialModel.unit=_unitValue;
                   materialModel.allQty=_materialQuantity.text;
                   materialModel.totalQty=totalMaterial;
+                  materialModel.rate=_materialRate.text.isEmpty?0:double.parse(_materialRate.text);
                   _materialList.add(materialModel);
                   _materialQuantity.clear();
+                  _materialRate.clear();
                   _overallMaterial=0;
                   for(var a in _materialList){
                     _overallMaterial=_overallMaterial+a.totalQty;
+                    _totalMaterialRate=_totalMaterialRate+a.rate;
                   }
                 });
               }
@@ -683,7 +690,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },),
                 title: Text(_materialList[i].materialName+" "+_materialList[i].allQty),
-                trailing: Text(_materialList[i].totalQty.toStringAsFixed(3) + " "+_materialList[i].unit,style: TextStyle(fontWeight: FontWeight.w800),),
+                trailing: Text(
+                    (_materialList[i].rate*_materialList[i].totalQty).toStringAsFixed(2)+"  "+
+                  _materialList[i].totalQty.toStringAsFixed(3) + " "+_materialList[i].unit,style: TextStyle(fontWeight: FontWeight.w800),),
               );
             },
           ),
@@ -714,7 +723,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     });
                   },),
                 title: Text(_fabricList[i].fabricName+" "+_fabricList[i].allQty),
-                trailing: Text(_fabricList[i].totalQty.toStringAsFixed(3) + " "+_fabricList[i].shade,style: TextStyle(fontWeight: FontWeight.w800),),
+                trailing: Text(
+                    (_fabricList[i].rate*_fabricList[i].totalQty).toStringAsFixed(2)+"  "+
+                  _fabricList[i].totalQty.toStringAsFixed(3),style: TextStyle(fontWeight: FontWeight.w800),),
               );
             },
           ),
@@ -749,16 +760,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 .add(({
                   "partyName": _partyValue,
                   "payment": double.tryParse(_amount.text)==null?0:double.tryParse(_amount.text),
-                  // "material": _materialList,
-                  // "unit": _unitValue,
-                  // "materialQuantity": double.tryParse(_materialQuantity.text),
-                  // "fabric": _fabricValue,
-                  // "shade": _shadesValue,
-                  // "fabricQuantity": double.tryParse(_fabricQuantity.text),
                   "invoiceNo": invoiceNo,
                   "date": formattedDate,
                   "timeStamp": now,
-                  "reportDate":rDate
+                  "reportDate":t1.text
                 })).then((value) {
                   _materialList.forEach((element) {
                     FirebaseFirestore.instance.collection("materialInvoice").add({
@@ -766,7 +771,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       "unit":element.unit,
                       "totalQty":element.totalQty,
                       "allQty":element.allQty,
-                      "invoice":value.id
+                      "invoice":value.id,
+                      "rate":element.rate
                     });
                   });
                   _fabricList.forEach((element) {
@@ -775,7 +781,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       "shade":element.shade,
                       "totalQty":element.totalQty,
                       "allQty":element.allQty,
-                      "invoice":value.id
+                      "invoice":value.id,
+                      "rate":element.rate
                     });
                   });
             }).whenComplete(() {
@@ -783,15 +790,24 @@ class _MyHomePageState extends State<MyHomePage> {
               _submitPressed = false;
               if(isPrint){
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
                  setState(() {
                    _fabricList=[];
                    _materialList=[];
                    _amount.text="";
+                   _materialRate.text="";
+                   _fabricRate.text="";
                  });
                 });
               }else{
                 Navigator.of(context).pop();
+                setState(() {
+                  _fabricList=[];
+                  _materialList=[];
+                  _amount.text="";
+                  _materialRate.text="";
+                  _fabricRate.text="";
+                });
               }
 
             });
@@ -803,16 +819,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   .add(({
                     "partyName": _partyValue,
                     "payment": double.tryParse(_amount.text),
-                    // "material": _materialValue,
-                    // "unit": _unitValue,
-                    // "materialQuantity": double.tryParse(_materialQuantity.text),
-                    // "fabric": _fabricValue,
-                    // "shade": _shadesValue,
-                    // "fabricQuantity": double.tryParse(_fabricQuantity.text),
                     "invoiceNo": invoiceNo,
                     "date": formattedDate,
                     "timeStamp": now,
-                    "reportDate":rDate
+                    "reportDate":t1.text
                   })).then((value) {
                 _materialList.forEach((element) {
                   FirebaseFirestore.instance.collection("materialInvoice").add({
@@ -820,7 +830,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     "unit":element.unit,
                     "totalQty":element.totalQty,
                     "allQty":element.allQty,
-                    "invoice":value.id
+                    "invoice":value.id,
+                    "rate":element.rate
                   });
                 });
                 _fabricList.forEach((element) {
@@ -829,7 +840,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     "shade":element.shade,
                     "totalQty":element.totalQty,
                     "allQty":element.allQty,
-                    "invoice":value.id
+                    "invoice":value.id,
+                    "rate":element.rate
                   });
                 });
               })
@@ -838,15 +850,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 _submitPressed = false;
                 if(isPrint){
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, formattedDate, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
                     setState(() {
                       _fabricList=[];
                       _materialList=[];
                       _amount.text="";
+                      _materialRate.text="";
+                      _fabricRate.text="";
                     });
                   });
                 }else{
                   Navigator.of(context).pop();
+                  setState(() {
+                    _fabricList=[];
+                    _materialList=[];
+                    _amount.text="";
+                    _materialRate.text="";
+                    _fabricRate.text="";
+                  });
                 }
                 // _fabricList=[];
                 // _materialList=[];
@@ -878,5 +899,22 @@ class _MyHomePageState extends State<MyHomePage> {
         return alert;
       },
     );
+  }
+
+  Future<Null> _selectFirstDate(BuildContext context) async {
+    final DateTime picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1970),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _firstDate = picked.toString();
+        _firstDate = _firstDate.substring(0, 10);
+        t1.text = _firstDate;
+      });
+    }
   }
 }
