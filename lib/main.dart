@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dropdownfield/dropdownfield.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -64,18 +65,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var _partyValue = "0";
-  var _materialValue = "0";
-  var _shadesValue = "0";
-  var _fabricValue = "0";
-  var _unitValue = "kg";
+  var _partyValue = "";
+  var _materialValue = "";
+  var _shadesValue = "";
+  var _fabricValue = "";
+  var _unitValue = "Kg";
   bool _submitPressed = false;
-  List<DropdownMenuItem> _units = [];
+  List<String> _units = [];
   TextEditingController _amount;
   TextEditingController _materialQuantity;
   TextEditingController _materialRate;
   TextEditingController _fabricQuantity;
   TextEditingController _fabricRate;
+  TextEditingController _partyController;
+  TextEditingController _unitController;
+  TextEditingController _fabricController;
+  TextEditingController _materialController;
 
   double textSize = 0;
   double totalMaterial = 0;
@@ -103,15 +108,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _units.add(DropdownMenuItem(
-      child: Text("Kg"),
-      value: "kg",
-    ));
+    _units.add("Kg");
     _amount = TextEditingController();
     _materialQuantity = TextEditingController();
     _fabricQuantity = TextEditingController();
     _fabricRate = TextEditingController();
     _materialRate=TextEditingController();
+    _materialController=TextEditingController();
+     _partyController= TextEditingController();
+     _unitController= TextEditingController();
+     _fabricController= TextEditingController();
     t1=new TextEditingController(text: DateTime.now().toString().split(" ")[0]);
     super.initState();
   }
@@ -238,45 +244,29 @@ class _MyHomePageState extends State<MyHomePage> {
                               .snapshots(),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
-                              List<DropdownMenuItem> items = [];
+                              List<String> items = [];
                               final datas = snapshot.data.docs;
-                              items.add(DropdownMenuItem(
-                                child: Text(
-                                  "Please select party",
-                                  style: TextStyle(fontSize: textSize),
-                                ),
-                                value: "0",
-                              ));
+
                               for (var st in datas) {
-                                items.add(DropdownMenuItem(
-                                  child: Text(
-                                    st.data()['name'],
-                                    style: TextStyle(fontSize: textSize),
-                                  ),
-                                  value: st.data()['name'],
-                                ));
+                                items.add(st.data()['name']);
                               }
                               return Expanded(
-                                  child: Container(
-                                padding: EdgeInsets.only(left: 10),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.blue, width: 2),
-                                    borderRadius: BorderRadius.circular(5)),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButtonFormField(
-                                    items: items,
+                                child: DropDownField(
                                     value: _partyValue,
-                                    decoration: InputDecoration(
-                                        border: InputBorder.none),
-                                    onChanged: (value) {
-                                      setState(() {
+                                    required: true,
+                                    strict: true,
+                                    labelText: 'Party Name *',
+                                    controller: _partyController,
+                                    icon: Icon(Icons.person_pin),
+                                    items: items,
+                                    onValueChanged: (value){
                                         _partyValue = value;
-                                      });
                                     },
-                                  ),
+                                    setter: (dynamic newValue) {
+
+                                    }
                                 ),
-                              ));
+                              );
                             } else {
                               return Text("Loading...");
                             }
@@ -332,43 +322,27 @@ class _MyHomePageState extends State<MyHomePage> {
                               .snapshots(),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
-                              List<DropdownMenuItem> items = [];
+                              List<String> items = [];
                               final datas = snapshot.data.docs;
-                              items.add(DropdownMenuItem(
-                                child: Text(
-                                  "Please select material",
-                                  style: TextStyle(fontSize: textSize),
-                                ),
-                                value: "0",
-                              ));
+
                               for (var st in datas) {
-                                items.add(DropdownMenuItem(
-                                  child: Text(
-                                    st.data()['name'],
-                                    style: TextStyle(fontSize: textSize),
-                                  ),
-                                  value: st.data()['name'],
-                                ));
+                                items.add(st.data()['name']);
                               }
                               return Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.only(left: 10),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.blue, width: 2),
-                                    borderRadius: BorderRadius.circular(5)),
-                                child: DropdownButtonFormField(
-                                  items: items,
-                                  decoration:
-                                      InputDecoration(border: InputBorder.none),
-                                  value: _materialValue,
-                                  onChanged: (value) {
-                                    setState(() {
+                                child: DropDownField(
+                                    value: _materialValue,
+                                    strict: true,
+                                    labelText: 'Material ',
+                                    items: items,
+                                    controller: _materialController,
+                                    onValueChanged: (value){
                                       _materialValue = value;
-                                    });
-                                  },
+                                    },
+                                    setter: (dynamic newValue) {
+
+                                    }
                                 ),
-                              ));
+                              );
                             } else {
                               return Text("Loading...");
                             }
@@ -376,27 +350,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       SizedBox(
                         width: 10,
                       ),
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.only(left: 10),
-                          decoration: BoxDecoration(
-                              border: Border.all(color: Colors.blue, width: 2),
-                              borderRadius: BorderRadius.circular(5)),
-                          child: DropdownButtonFormField(
-                            isExpanded: true,
-                            items: _units,
-                            // style: TextStyle(fontSize: textSize),
-                            value: _unitValue,
-                            decoration:
-                                InputDecoration(border: InputBorder.none),
-                            onChanged: (value) {
-                              setState(() {
-                                _unitValue = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
+                  Expanded(
+                    child: DropDownField(
+                        controller: _unitController,
+                        value: _unitValue,
+                        strict: true,
+                        labelText: 'Unit ',
+                        items: _units,
+                        onValueChanged: (value){
+                          _unitValue = value;
+                        },
+                        setter: (dynamic newValue) {
+
+                        }
+                    ),
+                  ),
                       SizedBox(
                         width: 10,
                       ),
@@ -426,38 +394,26 @@ class _MyHomePageState extends State<MyHomePage> {
                               .snapshots(),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
-                              List<DropdownMenuItem> items = [];
+                              List<String> items = [];
                               final datas = snapshot.data.docs;
-                              items.add(DropdownMenuItem(
-                                child: Text("Please select fabric"),
-                                value: "0",
-                              ));
                               for (var st in datas) {
-                                items.add(DropdownMenuItem(
-                                  child: Text(st.data()['name']),
-                                  value: st.data()['name'],
-                                ));
+                                items.add(st.data()['name']);
                               }
                               return Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.only(left: 10),
-                                decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.blue, width: 2),
-                                    borderRadius: BorderRadius.circular(5)),
-                                child: DropdownButtonFormField(
-                                  items: items,
-                                  // style: TextStyle(fontSize: textSize),
-                                  value: _fabricValue,
-                                  decoration:
-                                      InputDecoration(border: InputBorder.none),
-                                  onChanged: (value) {
-                                    setState(() {
+                                child: DropDownField(
+                                    controller: _fabricController,
+                                    value: _fabricValue,
+                                    strict: true,
+                                    labelText: 'Fabric ',
+                                    items: items,
+                                    onValueChanged: (value){
                                       _fabricValue = value;
-                                    });
-                                  },
+                                    },
+                                    setter: (dynamic newValue) {
+
+                                    }
                                 ),
-                              ));
+                              );
                             } else {
                               return Text("Loading...");
                             }
@@ -690,7 +646,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },),
                 title: Text(_materialList[i].materialName+" "+_materialList[i].allQty),
-                trailing: Text(
+                trailing: Text("₹ "+
                     (_materialList[i].rate*_materialList[i].totalQty).toStringAsFixed(2)+"  "+
                   _materialList[i].totalQty.toStringAsFixed(3) + " "+_materialList[i].unit,style: TextStyle(fontWeight: FontWeight.w800),),
               );
@@ -723,7 +679,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     });
                   },),
                 title: Text(_fabricList[i].fabricName+" "+_fabricList[i].allQty),
-                trailing: Text(
+                trailing: Text("₹ "+
                     (_fabricList[i].rate*_fabricList[i].totalQty).toStringAsFixed(2)+"  "+
                   _fabricList[i].totalQty.toStringAsFixed(3),style: TextStyle(fontWeight: FontWeight.w800),),
               );
@@ -738,7 +694,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _saveInvoice(isPrint) async {
-    if (_partyValue == "0") {
+    if (_partyValue == "") {
       Fluttertoast.showToast(msg: "Please select party");
     } else {
       if (!_submitPressed) {
@@ -790,13 +746,17 @@ class _MyHomePageState extends State<MyHomePage> {
               _submitPressed = false;
               if(isPrint){
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo.toString(), _amount.text, _materialList, _fabricList),)).then((value) {
                  setState(() {
                    _fabricList=[];
                    _materialList=[];
                    _amount.text="";
                    _materialRate.text="";
                    _fabricRate.text="";
+                   _partyValue="";
+                   _partyController.text="";
+                   _materialController.text="";
+                   _fabricController.text="";
                  });
                 });
               }else{
@@ -807,6 +767,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   _amount.text="";
                   _materialRate.text="";
                   _fabricRate.text="";
+                  _partyValue="";
+                  _partyController.text="";
+                  _materialController.text="";
+                  _fabricController.text="";
                 });
               }
 
@@ -850,13 +814,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 _submitPressed = false;
                 if(isPrint){
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo, _amount.text, _materialList, _fabricList),)).then((value) {
+                  Navigator.of(context).push(MaterialPageRoute(builder:(context) => PrintOrder(_partyValue, t1.text, invoiceNo.toString(), _amount.text, _materialList, _fabricList),)).then((value) {
                     setState(() {
                       _fabricList=[];
                       _materialList=[];
                       _amount.text="";
                       _materialRate.text="";
                       _fabricRate.text="";
+                      _partyValue="";
+                      _partyController.text="";
+                      _materialController.text="";
+                      _fabricController.text="";
                     });
                   });
                 }else{
@@ -867,6 +835,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     _amount.text="";
                     _materialRate.text="";
                     _fabricRate.text="";
+                    _partyValue="";
+                    _partyController.text="";
+                    _materialController.text="";
+                    _fabricController.text="";
                   });
                 }
                 // _fabricList=[];

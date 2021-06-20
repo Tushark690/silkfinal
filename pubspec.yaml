@@ -38,6 +38,7 @@ dependencies:
 #  path_provider:
 #  open_file:
   printing:
+  dropdownfield: ^1.0.3
 
 dev_dependencies:
   flutter_test:
